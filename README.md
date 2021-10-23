@@ -10,10 +10,10 @@
 
 Linked list is used to store the data of clients connected to the server.
 It contains :
-	- Client fd
-	- Client IP
-	- Client Port
-	- ?Buffer?
+- Client fd
+- Client IP
+- Client Port
+- ?Buffer?
 Need a buffer for HTTP Pipelining
 
 # Functions
