@@ -5,6 +5,7 @@
  * 	- logfile
  */
 #include "server.h"
+#include "http.h"
 
 FILE *fp = NULL;
 
@@ -22,7 +23,8 @@ int main(int argc, char *argv[])
 
 	int servfd = init_server("192.168.0.163",argv[1], AF_INET, IPPROTO_TCP, SOCK_STREAM);
 
-
+	wait_on_client(servfd);
+	
 	exit(EXIT_SUCCESS);
 }
 
