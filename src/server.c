@@ -49,6 +49,10 @@ int init_server(char *host, char *service, int family, int protocol, int socktyp
 		if(servfd== -1)
 			continue;
 
+		int val = 1;
+		if(setsockopt(servfd,SOL_SOCKET,SO_REUSEADDR,&val,sizeof(val)) == -1)
+			errExit(fp,"setsockopt-SO_REUSEADDR");
+
 		if(bind(servfd,rp->ai_addr,rp->ai_addrlen)==0){
 			break;
 		}
@@ -59,14 +63,15 @@ int init_server(char *host, char *service, int family, int protocol, int socktyp
 	if(rp == NULL)
 		errExit(fp,"bind - could not bind to any address");
 	
+	ws_log(fp,INFO,"Successfully bind to socket");
+
 	/* Set SO_REUSEADDR */
-	if(setsockopt(servfd,SOL_SOCKET,SO_REUSEADDR,&(int){1},sizeof(int)) == -1)
-		errExit(fp,"setsockopt-SO_REUSEADDR");
 
 	/* Listen on server */
 	if(listen(servfd,MAX_CLIENT) == -1 )
 		errExit(fp,"listen");
 	
+	ws_log(fp,INFO,"Listening on socket");
 
 	return servfd;
 }	

@@ -1,12 +1,18 @@
 /* TODO:
- * 	- Implement add_client()
- * 	- Implement drop_client()
  * 	- Improve log
+ * 	- implemetn print_clients()
+ * 	- Now parse requests
+ * 	- Check if linked list working or not
  */
 #include "http.h"
+#define DEBUG(x) fprintf(stdout,"REACHED HERE! : %d\n", (x) );
+
 
 extern FILE* fp;
 CLIENT *root;
+
+fd_set masterset;
+int maxfd = 0;
 
 CLIENT* get_client(int fd)
 {
@@ -23,8 +29,8 @@ CLIENT* get_client(int fd)
 
 void wait_on_client(int servfd)
 {	
-	int maxfd;
-	fd_set masterset, currentset;
+	maxfd = servfd;
+	fd_set currentset;
 	FD_ZERO(&masterset);
 	FD_SET(servfd,&masterset);
 	
@@ -34,32 +40,36 @@ void wait_on_client(int servfd)
 		if(select(maxfd+1,&currentset,NULL,NULL,NULL) == -1)
 			errExit(fp,"select");
 	
-		for( int i = 0 ; i < maxfd ; i++ ){
+		for( int i = 0 ; i <= maxfd ; i++ ){
 			
 			if(FD_ISSET(i,&currentset) != 0){
 			
 				if(i == servfd ){ /* Server is ready to accept more connections */	
 
 					struct sockaddr client_addr;
-					socklen_t client_addr_len;		
+					socklen_t client_addr_len = sizeof(client_addr);		
 
 					int clientfd = accept(servfd, &client_addr, &client_addr_len);
 
-					if(clientfd == -1){
-						ws_log(fp,ERR,"error in accept : %s",strerror(errno));
+					if(clientfd == -1 && errno!=EWOULDBLOCK && errno!=EAGAIN){
+						ws_log(fp,ERR,"Error in accept : %s",strerror(errno));
 					}else{
 						if(clientfd > maxfd )		/* set the maxfd to the maximum obtaineed fd */
 							maxfd = clientfd;
 
 						FD_SET(clientfd,&masterset);
 
-						ws_log(fp,INFO,"Client Connected");
 
 						/* store client data */
 						if(add_client(clientfd,&client_addr, &client_addr_len) == 0){
 							ws_log(fp,ERR,"Error in add_client(), dropping client");
 							send_500(i);
 						}	
+						
+						CLIENT* client = get_client(clientfd);
+						ws_log(fp,INFO,"Client Connected IP :");
+						ws_log(fp,INFO,client->host);
+
 					}
 
 				}else{
@@ -69,11 +79,10 @@ void wait_on_client(int servfd)
 					 * */
 					//CLIENT *cl;
 					//cl = get_client(i);
-					
 					char buf[] = "hehe bye!\n";
-					send(i,buf,sizeof(buf),0);
-
-					close(i);
+					write(i,buf,sizeof(buf));
+						
+					drop_client(i);
 					/* If the client drops reduce the maxfd to
 					 * the next highest available fd and remove from the maxset*/
 								
@@ -108,10 +117,15 @@ int add_client(int cfd, struct sockaddr *addr, socklen_t *socklen)
 	temp->addr = *addr;
 	temp->buf = NULL;
 
-	res = getnameinfo(&(temp->addr),temp->socklen,temp->host,NI_MAXHOST,NULL,0,NI_NAMEREQD | NI_NUMERICHOST);
+	res = getnameinfo(&(temp->addr),temp->socklen,temp->host,NI_MAXHOST,NULL,0,NI_NUMERICHOST);
 	if(res != 0){
-		temp->host[0] = 'E';
-		ws_log(fp,WARN,"%s",gai_strerror(res));
+		temp->host[0] = 'N';
+		temp->host[1] = 'U';
+		temp->host[2] = 'L';
+		temp->host[3] = 'L';
+		temp->host[4] = '\0';
+		char *err = (char *)gai_strerror(res);
+		ws_log(fp,WARN,err);
 	}
 
 	temp->client_next = root;
@@ -120,21 +134,32 @@ int add_client(int cfd, struct sockaddr *addr, socklen_t *socklen)
 	return 1;
 }
 
-/* TODO: Complete this function */
 void drop_client(int fd)
 {
+	CLIENT **rpp = &root;
 	CLIENT *rp = root;
 
 	while(rp!=NULL){
 		if(rp->cfd == fd){
+			*rpp = rp->client_next;
+			free(rp);
 			break;
 		}
+		rpp = &(rp->client_next);
+		rp = rp->client_next;
 	}
-	
+
+
+	FD_CLR(fd,&masterset);
 	close(fd);
+
+	if(fd == maxfd){
+		while(FD_ISSET(maxfd,&masterset) == 0){
+			maxfd--;
+		}
+	}
 }
 
-/* TODO: Complete this function */
 void send_500(int fd)
 {
 	char buf[] = "HTTP/1.1 500 Internal Server Error\r\nConnection: Closed\r\n\r\n";
