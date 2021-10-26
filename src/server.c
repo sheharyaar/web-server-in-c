@@ -8,14 +8,34 @@
 #include "http.h"
 
 FILE *fp = NULL;
+extern CLIENT* root;
+
+static void handler(int);
 
 int main(int argc, char *argv[])
 {
+
 
 	if(argc!=3){
 		fprintf(stderr,"Usage :\n%s port logfile\n",argv[0]);
 		exit(EXIT_FAILURE);
 	}
+
+	/*
+	if(chroot("../www/") == -1)
+		errExit(stderr,"chroot");
+	*/
+	
+	struct sigaction sa;
+	sa.sa_flags = 0;
+	sa.sa_handler = handler;
+	sigemptyset(&sa.sa_mask);
+	
+	if(sigaction(SIGINT,&sa,NULL) == -1)
+		errExit(fp,"sigaction");
+
+	if(atexit(cleanup)!=0)
+		errExit(stderr,"atextit");
 
 	fp = fopen(argv[2],"a");
 	if(fp == NULL)
@@ -76,4 +96,21 @@ int init_server(char *host, char *service, int family, int protocol, int socktyp
 	return servfd;
 }	
 
+void cleanup(void)
+{
+	/* Free the list of client on exit */
+	ws_log(fp,INFO,"Freeing client list");
+	CLIENT *temp;
+	while(root!=NULL){
+		temp = root;
+		root = root->client_next;
+		free(temp);
+	}
+	ws_log(fp,INFO,"CLient list freed");
+}
+
+static void handler(int sig)
+{
+	exit(EXIT_FAILURE);
+}
 

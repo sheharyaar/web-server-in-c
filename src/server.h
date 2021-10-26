@@ -6,6 +6,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "log.h"
 
@@ -13,8 +14,8 @@
 #define FALSE 0
 
 #define MAX_CLIENT 1024
-#define MAX_BUF 512
 
 int init_server(char *host, char *server, int family, int protocol, int socktype);
+void cleanup(void);
 
 #endif

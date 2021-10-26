@@ -66,6 +66,7 @@ set ttimeout
 set ttimeoutlen=100
 set undodir=~/.cache/vim/undo//
 set wildmenu
+set window=32
 set winminheight=0
 set winminwidth=0
 let s:so_save = &g:so | let s:siso_save = &g:siso | setg so=0 siso=0 | setl so=-1 siso=-1
@@ -100,8 +101,8 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
-exe '1resize ' . ((&lines * 26 + 16) / 33)
-exe '2resize ' . ((&lines * 3 + 16) / 33)
+exe '1resize ' . ((&lines * 27 + 16) / 33)
+exe '2resize ' . ((&lines * 2 + 16) / 33)
 argglobal
 balt server.c
 setlocal keymap=
@@ -231,12 +232,12 @@ setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 96 - ((17 * winheight(0) + 13) / 26)
+let s:l = 71 - ((13 * winheight(0) + 13) / 27)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 96
-normal! 025|
+keepjumps 71
+normal! 0
 wincmd w
 argglobal
 enew
@@ -340,7 +341,7 @@ setlocal spellcapcheck=[.?!]\\_[\\])'\"\	\ ]\\+
 setlocal spellfile=
 setlocal spelllang=en
 setlocal spelloptions=
-setlocal statusline=%!py3eval('powerline.statusline(4)')
+setlocal statusline=%!py3eval('powerline.statusline(3)')
 setlocal suffixesadd=
 setlocal noswapfile
 setlocal synmaxcol=3000
@@ -367,8 +368,8 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 wincmd w
-exe '1resize ' . ((&lines * 26 + 16) / 33)
-exe '2resize ' . ((&lines * 3 + 16) / 33)
+exe '1resize ' . ((&lines * 27 + 16) / 33)
+exe '2resize ' . ((&lines * 2 + 16) / 33)
 tabnext
 edit http.h
 argglobal
@@ -500,21 +501,23 @@ setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 30 - ((19 * winheight(0) + 15) / 30)
+let s:l = 33 - ((5 * winheight(0) + 15) / 30)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 30
-normal! 04|
+keepjumps 33
+normal! 0
 tabnext 1
 set stal=1
-badd +30 http.c
-badd +74 server.c
-badd +1 http.h
-badd +1 server.h
-badd +22 log.c
+badd +1 http.c
+badd +62 server.c
+badd +0 http.h
+badd +16 server.h
+badd +16 log.c
 badd +16 log.h
 badd +1 Makefile
+badd +1 test
+badd +60 test.c
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0
   silent exe 'bwipe ' . s:wipebuf
 endif
@@ -525,6 +528,7 @@ if filereadable(s:sx)
   exe "source " . fnameescape(s:sx)
 endif
 let &g:so = s:so_save | let &g:siso = s:siso_save
+nohlsearch
 doautoall SessionLoadPost
 unlet SessionLoad
 " vim: set ft=vim :
