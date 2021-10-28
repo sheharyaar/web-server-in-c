@@ -107,11 +107,12 @@ int parse_request(char *request)
 	char *str1, *res, *save;
 	int i;
 	
+	/* Splitting the header and the body	*/
 	char *str = strtok(request,"\r\n\r\n");
 	if(str == NULL)
 		return 400;
 	
-
+	/* Splitting individual lines */
 	for(i=0,str1 = str; ; str1=NULL,++i){
 		res = strtok_r(str1,"\r\n",&save);
 		if(res == NULL)
@@ -128,6 +129,7 @@ int parse_request(char *request)
 			if(ret!=0)
 				return ret;
 		}else{
+			/* Parse the message headers */
 
 		}
 	}

@@ -1,5 +1,5 @@
 flags = -Wall -Werror 
-objects = server.o log.o http.o parse.o err_codes.o
+objects = server.o log.o http.o parse.o error_codes.o
 
 server : $(objects)
 	gcc -o server $(objects) $(flags)
@@ -16,8 +16,8 @@ http.o : server.h http.c
 parse.o : parse.c server.h
 	gcc -c parse.c $(flags)
 
-err_codes.o : err_codes.c server.h
-	gcc -c err_codes.c $(flags)
+error_codes.o : error_codes.c server.h
+	gcc -c error_codes.c $(flags)
 
 clean : 
 	rm server $(objects) 

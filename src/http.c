@@ -6,8 +6,11 @@
  * 	Implement Content length
  *
  * 	- Improve log
- * 	- implement print_clients()
  * 	- Now parse requests
+ *	- Error macros
+ *	- Sending files
+ *	- Trim parse_request
+ *
  * 	- Check if linked list working or not
  */
 #include "server.h"

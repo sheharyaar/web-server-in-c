@@ -84,6 +84,7 @@ void send_414(int fd);		/* URI too large */
 void send_500(int fd);
 void send_501(int fd);
 
+
 /*----------------------------------------------------- parse header ---------------------------------------------*/
 
 char *parse_url(char *str);
