@@ -12,6 +12,8 @@
 all “good” requests, you will simply echo back the original request. For all “bad” requests, you will
 return an HTTP response with 400 as the error code.
 
+		- Deny http 1.0 messages or send 400
+
 	- Test using our provided cp1 checker.py test script (read that script and understand it too) Try to
 “break” your server and make it crash — and then patch the bugs you find that make it crash.
 

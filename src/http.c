@@ -10,7 +10,7 @@
  * 	- Now parse requests
  * 	- Check if linked list working or not
  */
-#include "http.h"
+#include "server.h"
 #define DEBUG(x) fprintf(stdout,"REACHED HERE! : %d\n", (x) );
 
 
@@ -85,8 +85,6 @@ void wait_on_client(int servfd)
 					 * */
 					CLIENT* cl = get_client(i);
 					serve_resource(cl);
-					/* If the client drops reduce the maxfd to
-					 * the next highest available fd and remove from the maxset*/
 								
 				}
 
@@ -163,6 +161,7 @@ void drop_client(int fd)
 void serve_resource(CLIENT* cl)
 {
 	int fd = cl->cfd;
+	memset(&cl->readBuf,0,MAX_BUF);
 	cl->readData = ws_read(fd,cl->readBuf,MAX_BUF);
 
 	if(cl->readData == 0){		/* If the client closes connection read gives 0 and write gives EPIPE*/
@@ -171,45 +170,10 @@ void serve_resource(CLIENT* cl)
 	}
 
 	ws_log(fp,INFO,cl->readBuf);
-	
+
+	parse_request(cl->readBuf);
+
 	send_413(cl->cfd);
 
 }
 
-void send_500(int fd)
-{
-	char buf[] = "HTTP/1.1 500 Internal Server Error\r\nConnection: close\r\n\r\n";
-	ws_write(fd,buf,sizeof(buf));
-	ws_log(fp,INFO,buf);
-	drop_client(fd);
-}
-
-void send_413(int fd)
-{
-	/* Construct message */
-	char buffer[MAX_BUF];
-	snprintf(buffer,MAX_BUF,"HTTP/1.1 413 Request Size Too Large\r\nConnection: close\r\n\r\n");
-	ws_write(fd,buffer,strlen(buffer));
-
-	drop_client(fd);
-}
-
-ssize_t ws_read(int fd, void *buf, size_t count)
-{
-	ssize_t readNum = read(fd,buf,count);
-	if(readNum == -1 && errno!= EWOULDBLOCK && errno!= EAGAIN){
-		ws_log(fp,ERR,"read");
-	}
-
-	return readNum;
-}
-
-ssize_t ws_write(int fd, void *buf, size_t count)
-{
-	ssize_t writeNum = write(fd,buf,count);
-	if(writeNum == -1 && errno!= EWOULDBLOCK && errno!= EAGAIN){
-		ws_log(fp,ERR,"read");
-	}
-
-	return writeNum;
-}

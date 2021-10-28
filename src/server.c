@@ -5,7 +5,6 @@
  * 	- logfile
  */
 #include "server.h"
-#include "http.h"
 
 FILE *fp = NULL;
 extern CLIENT* root;
