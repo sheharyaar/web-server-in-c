@@ -14,6 +14,9 @@
 #include <errno.h>
 #include <string.h>
 #include <regex.h>
+#include <fcntl.h>
+#include <sys/sendfile.h>
+#include <sys/stat.h>
 
 /*----------------------------------------------------- server header ---------------------------------------------*/
 
@@ -40,6 +43,9 @@ void cleanup(void);
  * 	4) Pointer to buffer for the client
  * 	5) Pointer to the next clien tin the list
  */
+
+#define RESP_LINE_LEN 56
+
 typedef struct client{
 	int cfd;
 	ssize_t readData;
@@ -50,6 +56,11 @@ typedef struct client{
 	char readBuf[MAX_BUF];
 
 } CLIENT;
+
+typedef struct response{
+	char response_line[RESP_LINE_LEN];
+	char **headers;
+} RESPONSE;
 
 
 CLIENT* get_client(int fd);
@@ -77,20 +88,27 @@ ssize_t ws_write(int fd, void *buf, size_t count);
 
 /*----------------------------------------------------- error_code header ---------------------------------------------*/
 
+void send_200(int fd, off_t len);
 void send_400(int fd);
 void send_404(int fd);
+void send_411(int fd);
 void send_413(int fd);		/* Request too large */
 void send_414(int fd);		/* URI too large */
 void send_500(int fd);
 void send_501(int fd);
+void send_505(int fd);
 
 
 /*----------------------------------------------------- parse header ---------------------------------------------*/
 
+#define GET 0
+#define HEAD 1
+#define POST 2
+
 char *parse_url(char *str);
-int parse_request_line(char *str);
-int parse_header(char *str);
-int parse_request(char *str);
+int parse_request_line(char *str, int fd);
+int parse_header(char *str, int fd);
+int parse_request(char *str, int fd);
 
 /*----------------------------------------------------- end header ---------------------------------------------*/
 #endif

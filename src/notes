@@ -1,0 +1,17 @@
+Need to parse everything as hex?? or ascii ??
+What to do about malicious characters?? Read URL RFC first..
+
+
+---------------------------------------------------------------------------------------------------------
+message struct -
+	
+char method[]
+char URI[]		-- can use lstat() to retreive info abt the file and check for malicious intent before opening it
+// no need for version, if not 1.1 just return error, can think later for HTTP/2???
+
+// make it a linked list....need to check for connection, etc..
+struct message fields -->
+	char message-head[]
+	char message-token/body[]
+
+char body[] or malloc using content-length OR dont accept body??

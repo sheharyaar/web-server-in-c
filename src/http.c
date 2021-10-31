@@ -120,11 +120,7 @@ int add_client(int cfd, struct sockaddr *addr, socklen_t *socklen)
 	temp->addr = *addr;
 	res = getnameinfo(&(temp->addr),temp->socklen,temp->host,NI_MAXHOST,NULL,0,NI_NUMERICHOST);
 	if(res != 0){
-		temp->host[0] = 'N';
-		temp->host[1] = 'U';
-		temp->host[2] = 'L';
-		temp->host[3] = 'L';
-		temp->host[4] = '\0';
+		strcpy(temp->host,"NULL");
 		char *err = (char *)gai_strerror(res);
 		ws_log(fp,WARN,err);
 	}
@@ -174,9 +170,6 @@ void serve_resource(CLIENT* cl)
 
 	ws_log(fp,INFO,cl->readBuf);
 
-	parse_request(cl->readBuf);
-
-	send_413(cl->cfd);
-
+	parse_request(cl->readBuf,fd);
 }
 

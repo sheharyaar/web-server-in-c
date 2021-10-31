@@ -1,6 +1,9 @@
 #include "server.h"
-	
-/* Returns the url */
+
+/* TODO : Read URL Rfc and create a better parser
+ *	Till now assume valid URI
+ */
+
 char *parse_url(char *str)
 {
 	char *res = strstr(str,"://");
@@ -14,21 +17,34 @@ char *parse_url(char *str)
 		return res;
 
 	}
+	else{
+		res = str;
+	}
 	
-	return str;
+	char *link = malloc((MAX_URI_LEN+2)*sizeof(char));
+	if(link == NULL)
+		return NULL;
+
+	strcpy(link,"../www");
+	strcpy(link+strlen(link),res);
+	
+	printf("DEBUG: LINK -- %s\n",link);
+
+	if(strcmp(link,"../www/") == 0){
+		strcpy(link+strlen(link),"index.html");
+	}
+	printf("DEBUG: LINK -- %s\n",link);
+
+	return link;
 }
 
-/* Return error code on error or -1 on system error 
- * 
- * TODO : Since we are returning only error code we need to verify if url exists or not
- * 	  Need to parse hex values in the url
- * 	  If method is head then dont send resource else send resource
- */
+/* Return error code on error or -1 on system error  */
 
-int parse_request_line(char *str)
+int parse_request_line(char *str, int fd)
 {
 	char *str1, *save, *res;
 	int i;
+	int method;
 
 	for(str1 = str, i = 0 ; ;str1=NULL, ++i ){
 
@@ -39,36 +55,70 @@ int parse_request_line(char *str)
 
 		if(i==0){	/* Method */
 			if(strcmp("GET",res) == 0){
-
+				method = GET;
 			}
 			else if(strcmp("HEAD",res) == 0){
-
+				method = HEAD;
 			}else{
+				send_501(fd);
 				return 501;
 			}
 
 			/* debugging */
-			printf("Method : %s\n",res);
+			printf("Method : %s\n%d\n",res,method);
 		}
 	
 		if(i == 1){ 	/* Url */
 
-			char *ret = parse_url(res);
-			if(strlen(ret) > MAX_URI_LEN ){
+			if(strlen(res) > MAX_URI_LEN ){
+				send_414(fd);
 				return 414;
 
 			}
+			char *ret = parse_url(res);
+			if(ret == NULL){
+				send_500(fd);
+				return 500;
+			}
+
+			printf("Url : %s\n",ret);
+
+			struct stat statbuf;
+			if(lstat(ret,&statbuf) == -1){
+				send_404(fd);
+				return 404;
+			}
+
+			off_t content_len = statbuf.st_size;
+			
+			send_200(fd,content_len);
+			
+			if(method == GET){
+				int file = open(ret,O_RDONLY);
+				if(file == -1){
+					send_500(fd);
+					return 500;
+				}
+				sendfile(fd,file,0,content_len);
+				close(file);
+			}
+			
+			
 			/* TODO : Check for returned error and send error code 
 			 *		- check for "/" and append base
 			 *
 			 * */
 			/* debugging */
 			printf("URL : %s\n",ret);
+
+			return 200;
 		}
 
 		if(i == 2){	/* HTTP version */
-			if(strstr(res,"1.1")==NULL)
+			if(strstr(res,"1.1")==NULL){
+				send_505(fd);
 				return 505;
+			}
 
 			/* debugging */
 			printf("HTTP Version : Correct\n");
@@ -88,7 +138,6 @@ int parse_request_line(char *str)
  *
  *	Request line:
  *		Method SP Request-URI SP HTTP-Version CRLF    -->
- *								Err 405 Method not allowed
  *								Err 501 Not implemented
  *
  *	Request-URI:
@@ -102,7 +151,7 @@ int parse_request_line(char *str)
  *		413 Paylaod Too large
  *
  */
-int parse_request(char *request)
+int parse_request(char *request, int fd)
 {
 	char *str1, *res, *save;
 	int i;
@@ -122,7 +171,7 @@ int parse_request(char *request)
 
 		if(i == 0){	/* Parsing the request-line */
 
-			int ret = parse_request_line(res);
+			int ret = parse_request_line(res,fd);
 
 			printf("Returned Value : %d\n",ret);
 
