@@ -6,7 +6,9 @@
  */
 #include "server.h"
 
-FILE *fp = NULL;
+pid_t server_pid;
+FILE *serverfp = NULL;
+FILE *clientfp = NULL;
 extern CLIENT* root;
 
 static void handler(int);
@@ -14,34 +16,49 @@ static void handler(int);
 int main(int argc, char *argv[])
 {
 
-
-	if(argc!=3){
-		fprintf(stderr,"Usage :\n%s port logfile\n",argv[0]);
+	// Usage Error
+	if(argc!=4){
+		fprintf(stderr,"Usage :\n%s port server-logfile client-logfile\n",argv[0]);
 		exit(EXIT_FAILURE);
 	}
 
-	/*
-	if(chroot("../www/") == -1)
-		errExit(stderr,"chroot");
-	*/
-	
+	// Open serverfile and logfile
+	serverfp = fopen(argv[2],"a");
+	if(serverfp == NULL){
+		fprintf(stderr,"Error in opening client-logfile");
+		exit(EXIT_SUCCESS);
+	}
+
+	clientfp = fopen(argv[3],"a");
+	if(clientfp == NULL){
+		fprintf(stderr,"Error in opening client-logfile");
+		exit(EXIT_FAILURE);
+	}
+
+	// server PID
+	server_pid = getpid();
+
+	// Mask SIGINT signal to force use of exit handler
 	struct sigaction sa;
 	sa.sa_flags = 0;
 	sa.sa_handler = handler;
 	sigemptyset(&sa.sa_mask);
 	
-	if(sigaction(SIGINT,&sa,NULL) == -1)
-		errExit(fp,"sigaction");
+	if(sigaction(SIGINT,&sa,NULL) == -1){
+		server_log(ERR,"sigaction");
+		exit(EXIT_FAILURE);
+	}
 
-	if(atexit(cleanup)!=0)
-		errExit(stderr,"atextit");
+	// Exit handler
+	if(atexit(cleanup)!=0){
+		server_log(ERR,"atextit");
+		exit(EXIT_FAILURE);
+	}
 
-	fp = fopen(argv[2],"a");
-	if(fp == NULL)
-		errExit(stderr,"opening logfile");
+	// Create server
+	int servfd = init_server("192.168.0.162",argv[1], AF_INET, IPPROTO_TCP, SOCK_STREAM);
 
-	int servfd = init_server("192.168.0.163",argv[1], AF_INET, IPPROTO_TCP, SOCK_STREAM);
-
+	// Wait on client
 	wait_on_client(servfd);
 	
 	exit(EXIT_SUCCESS);
@@ -58,19 +75,24 @@ int init_server(char *host, char *service, int family, int protocol, int socktyp
 	hints.ai_protocol = protocol;
 	hints.ai_socktype = socktype;
 
-	if(getaddrinfo(host,service,&hints,&res)!=0)
-		errExit(fp,"getaddrinfo");
+	if(getaddrinfo(host,service,&hints,&res)!=0){
+		server_log(ERR,"getaddrinfo");
+		exit(EXIT_FAILURE);
+	}
 
 	/* Get Socket, apply NONBLOCK and bind to it */
-
 	for(rp = res; rp!=NULL; rp=res->ai_next){
 		servfd = socket(rp->ai_family,rp->ai_socktype | SOCK_NONBLOCK,rp->ai_protocol);
 		if(servfd== -1)
 			continue;
 
 		int val = 1;
-		if(setsockopt(servfd,SOL_SOCKET,SO_REUSEADDR,&val,sizeof(val)) == -1)
-			errExit(fp,"setsockopt-SO_REUSEADDR");
+
+		/* Set SO_REUSEADDR */
+		if(setsockopt(servfd,SOL_SOCKET,SO_REUSEADDR,&val,sizeof(val)) == -1){
+			server_log(ERR,"setsockopt-SO_REUSEADDR");
+			exit(EXIT_FAILURE);
+		}
 
 		if(bind(servfd,rp->ai_addr,rp->ai_addrlen)==0){
 			break;
@@ -78,19 +100,21 @@ int init_server(char *host, char *service, int family, int protocol, int socktyp
 		
 	}
 	
-	/* no address to bind */
-	if(rp == NULL)
-		errExit(fp,"bind - could not bind to any address");
+	/* No address to bind */
+	if(rp == NULL){
+		server_log(ERR,"bind - could not bind to any address");
+	}
 	
-	ws_log(fp,INFO,"Successfully bind to socket");
+	server_log(INFO,"Successfully bind to socket");
 
-	/* Set SO_REUSEADDR */
 
 	/* Listen on server */
-	if(listen(servfd,MAX_CLIENT) == -1 )
-		errExit(fp,"listen");
+	if(listen(servfd,MAX_CLIENT) == -1 ){
+		server_log(ERR,"listen");
+		exit(EXIT_FAILURE);
+	}
 	
-	ws_log(fp,INFO,"Listening on socket");
+	server_log(INFO,"Listening on socket");
 
 	return servfd;
 }	
@@ -98,14 +122,14 @@ int init_server(char *host, char *service, int family, int protocol, int socktyp
 void cleanup(void)
 {
 	/* Free the list of client on exit */
-	ws_log(fp,INFO,"Freeing client list");
+	server_log(INFO,"Freeing client list");
 	CLIENT *temp;
 	while(root!=NULL){
 		temp = root;
 		root = root->client_next;
 		free(temp);
 	}
-	ws_log(fp,INFO,"CLient list freed");
+	server_log(INFO,"CLient list freed");
 }
 
 static void handler(int sig)

@@ -1,17 +1,23 @@
-Need to parse everything as hex?? or ascii ??
-What to do about malicious characters?? Read URL RFC first..
+TODO : 
+	HTTP -
+		[ ]Check for SIGPIPE ( Premature close ) and RST mechanism refer to bible
+		[ ]Create a user handler and improve user structure
+			Maybe implement DDOS Mechanism with counter of some sort ?? If reach threshold then blacklist
 
+	LOGS -
+		[ ]Add user agent
+		[ ]Add request-line
 
----------------------------------------------------------------------------------------------------------
-message struct -
+	PARSE -
+		[ ]Implement Content-Type 
+		[ ]Implement message header parsing and integrate to the send_code fuunction
+		[ ]Improve URL Parsing for dot characters and hex encoding
+		[ ]Remove debugging printf statements
+		[ ]Look into 404 close ( try not to close connection except for critical error)
+		[ ]Implement the response and request message structure
+
+	HEADER - 
+		[ ]Document the functions
+		[ ]Improve MAX Length functions and think to reduce them
 	
-char method[]
-char URI[]		-- can use lstat() to retreive info abt the file and check for malicious intent before opening it
-// no need for version, if not 1.1 just return error, can think later for HTTP/2???
 
-// make it a linked list....need to check for connection, etc..
-struct message fields -->
-	char message-head[]
-	char message-token/body[]
-
-char body[] or malloc using content-length OR dont accept body??

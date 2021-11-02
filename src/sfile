@@ -1,0 +1,7 @@
+[29359][02-11-2021 14:41:04][INFO] : Successfully bind to socket
+[29359][02-11-2021 14:41:04][INFO] : Listening on socket
+[29359][02-11-2021 14:41:06][INFO] : Client Connected, IP : 192.168.0.162
+[29359][02-11-2021 14:41:36][INFO] : Client Connected, IP : 192.168.0.162
+[29359][02-11-2021 14:41:50][INFO] : Client Connected, IP : 192.168.0.162
+[29359][02-11-2021 14:42:09][INFO] : Freeing client list
+[29359][02-11-2021 14:42:09][INFO] : CLient list freed

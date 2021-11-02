@@ -1,28 +1,22 @@
-/* TODO:
- *	
- *	classify requests as good or bad and echo back the good requests and 
- *	for bad requests send 400
- *
- * 	Implement Content length
- *
- * 	- Improve log
- * 	- Now parse requests
- *	- Error macros
- *	- Sending files
- *	- Trim parse_request
- *
- * 	- Check if linked list working or not
- */
 #include "server.h"
 #define DEBUG(x) fprintf(stdout,"REACHED HERE! : %d\n", (x) );
 
 
-extern FILE* fp;
-CLIENT *root;
+/* Import global variables from server.c*/
+extern FILE* serverfp;
+extern FILE* clientfp;
 
+
+/* Client root node */
+CLIENT *root = NULL;
+
+
+/* fd set for elect */
 fd_set masterset;
 int maxfd = 0;
 
+
+/* Function to get client from the list */
 CLIENT* get_client(int fd)
 {
 	CLIENT* rp = root;
@@ -46,9 +40,12 @@ void wait_on_client(int servfd)
 	do{
 		memcpy(&currentset, &masterset, sizeof(masterset));
 
-		if(select(maxfd+1,&currentset,NULL,NULL,NULL) == -1)
-			errExit(fp,"select");
+		if(select(maxfd+1,&currentset,NULL,NULL,NULL) == -1){
+			server_log(ERR,"select");
+			exit(EXIT_SUCCESS);
+		}
 	
+		/* Loop to check available fds */
 		for( int i = 0 ; i <= maxfd ; i++ ){
 			
 			if(FD_ISSET(i,&currentset) != 0){
@@ -61,23 +58,23 @@ void wait_on_client(int servfd)
 					int clientfd = accept(servfd, &client_addr, &client_addr_len);
 
 					if(clientfd == -1 && errno!=EWOULDBLOCK && errno!=EAGAIN){
-						ws_log(fp,ERR,"Error in accept : %s",strerror(errno));
+						server_log(ERR,"Error in accept : %s",strerror(errno));
 					}else{
 						if(clientfd > maxfd )		/* set the maxfd to the maximum obtaineed fd */
 							maxfd = clientfd;
 
 						FD_SET(clientfd,&masterset);
 
-
 						/* store client data */
 						if(add_client(clientfd,&client_addr, &client_addr_len) == 0){
-							ws_log(fp,ERR,"Error in add_client(), dropping client");
-							send_500(i);
+							server_log(ERR,"Error in add_client(), dropping client");
+							send_code(500,"NULL",clientfd,1,0);
 						}	
 						
 						CLIENT* client = get_client(clientfd);
-						ws_log(fp,INFO,"Client Connected IP :");
-						ws_log(fp,INFO,client->host);
+
+						server_log(INFO,"Client Connected, IP : %s",client->host);
+						client_log(client->host,INFO,"Client Connected, IP : %s",client->host);
 
 					}
 
@@ -102,15 +99,13 @@ void wait_on_client(int servfd)
 
 int add_client(int cfd, struct sockaddr *addr, socklen_t *socklen)
 {
-	/* Implement adding to linked list
-	 * Call getnameinfo to add host and server
-	 */
+	/* Add client to client list */
 	CLIENT *temp;
 	int res;
 
 	temp = malloc(sizeof(CLIENT));
 	if(temp == NULL){
-		ws_log(fp,ERR,"Error in malloc");
+		server_log(ERR,"Error in malloc");
 		return 0;
 	}
 
@@ -118,11 +113,13 @@ int add_client(int cfd, struct sockaddr *addr, socklen_t *socklen)
 	temp->client_next = NULL;
 	temp->socklen = *socklen;
 	temp->addr = *addr;
+
+	/* Get host string*/
 	res = getnameinfo(&(temp->addr),temp->socklen,temp->host,NI_MAXHOST,NULL,0,NI_NUMERICHOST);
 	if(res != 0){
 		strcpy(temp->host,"NULL");
 		char *err = (char *)gai_strerror(res);
-		ws_log(fp,WARN,err);
+		server_log(WARN,err);
 	}
 
 	temp->client_next = root;
@@ -133,6 +130,7 @@ int add_client(int cfd, struct sockaddr *addr, socklen_t *socklen)
 
 void drop_client(int fd)
 {
+	/* Remove client from list */
 	CLIENT **rpp = &root;
 	CLIENT *rp = root;
 
@@ -147,9 +145,16 @@ void drop_client(int fd)
 	}
 
 
+	/* Remove client from fd set */
 	FD_CLR(fd,&masterset);
+
+	/* Close the cinnection
+	 * TODO:
+	 * 	Check for RST received by client to prevent premature closing
+	 */
 	close(fd);
 
+	/* If the closed fd is max then decrease for select() call */
 	if(fd == maxfd){
 		while(FD_ISSET(maxfd,&masterset) == 0){
 			maxfd--;
@@ -168,8 +173,8 @@ void serve_resource(CLIENT* cl)
 		return ;
 	}
 
-	ws_log(fp,INFO,cl->readBuf);
+	client_log(cl->host,INFO,cl->readBuf);
 
-	parse_request(cl->readBuf,fd);
+	parse_request(cl->host, cl->readBuf,fd);
 }
 

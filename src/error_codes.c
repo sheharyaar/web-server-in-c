@@ -1,3 +1,16 @@
+/*
+ * Think about a response message structure 
+ * 	Response Line
+ * 	Date: Repsonse Time
+ * 	Location: ???
+ *	Content-Length: 
+ *	Content-Type: 
+ *	Body
+ *
+ */
+
+/* Think about a request storage structure */
+
 #include "server.h"
 
 extern FILE* fp;
@@ -31,121 +44,65 @@ static char *err_time(char *buf){
 	time_t t;
 	time(&t);
 	struct tm *gmt = gmtime(&t);
-	snprintf(buf,30,"%s, %02d %s %04d %02d:%02d:%02d GMT",day[gmt->tm_wday],gmt->tm_mday,month[gmt->tm_mon],1900+gmt->tm_year,
+	snprintf(buf,MAX_DATE_LEN,"%s, %02d %s %04d %02d:%02d:%02d GMT",day[gmt->tm_wday],gmt->tm_mday,month[gmt->tm_mon],1900+gmt->tm_year,
 			gmt->tm_hour,gmt->tm_min,gmt->tm_sec);
 
 	return buf;
 }
 
-void send_200(int fd, off_t len)
-{
-	char buffer[MAX_BUF];
-	char timebuf[30];
-	err_time(timebuf);
-	snprintf(buffer,MAX_BUF,"HTTP/1.1 200 OK\r\nDate: %s\r\n"
-			"Content-Length: %ld\r\n\r\n",timebuf,len);
-	ws_write(fd,buffer,strlen(buffer));
-	ws_log(fp,INFO,"Sent 200");
+RESP_CODE resp_code_list[] = {
+	{200,"OK"},
+	{400,"Bad Request"},
+	{404,"Not Found"},
+	{411,"Length Required"},
+	{413,"Request Entity Too Large"},
+	{414,"URI Too Long"},
+	{500,"Internal Server Error"},
+	{501,"Not Implemented"},
+	{505,"HTTP Version Not Supported"},
+};
 
-}
-
-void send_400(int fd)
+void send_code(int err, char *host, int fd, int close, size_t body)
 {
-	char buffer[MAX_BUF];
-	char timebuf[30];
+	char buffer[MAX_BUF+1];
+	char timebuf[MAX_DATE_LEN];
 	err_time(timebuf);
-	snprintf(buffer,MAX_BUF,"HTTP/1.1 400 Bad Request\r\nDate: %s\r\n"
-			"Connection: close\r\nContent-Length: 15\r\n\r\n400 Bad Request",timebuf);
-	ws_write(fd,buffer,strlen(buffer));
-	ws_log(fp,INFO,"Sent 400");
-	drop_client(fd);
+	
+	int flag = -1;
+	for(int i = 0 ; i < (sizeof(resp_code_list)/sizeof(RESP_CODE)) ; i++){
+		if(resp_code_list[i].code == err)
+			flag = i;
+	}
 
-}
+	if(flag == -1){
+		server_log(ERR,"Error in finding response code");
+		drop_client(fd);
+		return;
+	}
 
-void send_404(int fd)
-{
-	/* Construct message */
-	char buffer[MAX_BUF];
-	char timebuf[30];
-	err_time(timebuf);
-	snprintf(buffer,MAX_BUF,"HTTP/1.1 404 Not Found\r\nDate: %s\r\n"
-			"Connection: close\r\nContent-Length: 13\r\n\r\n404 Not Found",timebuf);
-	ws_write(fd,buffer,strlen(buffer));
-	ws_log(fp,INFO,"Sent 404");
-	drop_client(fd);
-}
+	snprintf(buffer,MAX_BUF,"HTTP/1.1 %d %s\r\nDate: %s\r\n",err,resp_code_list[flag].str,timebuf);
 
-void send_411(int fd)
-{
-	/* Construct message */
-	char buffer[MAX_BUF];
-	char timebuf[30];
-	err_time(timebuf);
-	snprintf(buffer,MAX_BUF,"HTTP/1.1 411 Length Required\r\nDate: %s\r\n"
-			"Connection: close\r\nContent-Length: 19\r\n\r\n411 Length Required",timebuf);
-	ws_write(fd,buffer,strlen(buffer));
-	ws_log(fp,INFO,"Sent 411");
-	drop_client(fd);
-}
+	if(close)
+		snprintf(buffer+strlen(buffer),MAX_BUF - strlen(buffer),"Connection: close\r\n");
 
-void send_413(int fd)
-{
-	/* Construct message */
-	char buffer[MAX_BUF];
-	char timebuf[30];
-	err_time(timebuf);
-	snprintf(buffer,MAX_BUF,"HTTP/1.1 413 Request Size Too Large\r\nDate: %s\r\n"
-			"Connection: close\r\nContent-Length: 22\r\n\r\nRequest Size Too Large",timebuf);
-	ws_write(fd,buffer,strlen(buffer));
-	ws_log(fp,INFO,"Sent 413");
-	drop_client(fd);
-}
+	if(body == 0){
+		if(err!=200){
+			snprintf(buffer+strlen(buffer),MAX_BUF - strlen(buffer),"Content-Length: %lu\r\n",strlen(resp_code_list[flag].str) );
+		}
+	}else{
+		snprintf(buffer+strlen(buffer),MAX_BUF - strlen(buffer),"Content-Length: %lu\r\n",body);
+	}
 
-void send_414(int fd)		/* URI too large */
-{
-	/* Construct message */
-	char buffer[MAX_BUF];
-	char timebuf[30];
-	err_time(timebuf);
-	snprintf(buffer,MAX_BUF,"HTTP/1.1 413 Request Size Too Large\r\nDate: %s\r\n"
-			"Connection: close\r\nContent-Length: 22\r\n\r\nRequest Size Too Large",timebuf);
-	ws_write(fd,buffer,strlen(buffer));
-	ws_log(fp,INFO,"Sent 414");
-	drop_client(fd);
-}
+	snprintf(buffer+strlen(buffer),MAX_BUF - strlen(buffer),"\r\n");
+	
+	if(body == 0 && err!=200)
+		snprintf(buffer+strlen(buffer),MAX_BUF - strlen(buffer),"%s",resp_code_list[flag].str);
 
-void send_500(int fd)
-{
-	char buffer[MAX_BUF];
-	char timebuf[30];
-	err_time(timebuf);
-	snprintf(buffer,MAX_BUF,"HTTP/1.1 500 Internal Server Error\r\nDate: %s\r\n"
-			"Connection: close\r\nContent-Length: 25\r\n\r\n500 Internal Server Error",timebuf);
 	ws_write(fd,buffer,strlen(buffer));
-	ws_log(fp,INFO,"Sent 500");
-	drop_client(fd);
-}
-void send_501(int fd)
-{
-	char buffer[MAX_BUF];
-	char timebuf[30];
-	err_time(timebuf);
-	snprintf(buffer,MAX_BUF,"HTTP/1.1 501 Not Implemented\r\nDate: %s\r\n"
-			"Connection: close\r\nContent-Length: 19\r\n\r\n501 Not Implemented",timebuf);
-	ws_write(fd,buffer,strlen(buffer));
-	ws_log(fp,INFO,"Sent 501");
-	drop_client(fd);
-}
 
-void send_505(int fd)
-{
-	char buffer[MAX_BUF];
-	char timebuf[30];
-	err_time(timebuf);
-	snprintf(buffer,MAX_BUF,"HTTP/1.1 505 HTTP Version Not Supported\r\nDate: %s\r\n"
-			"Connection: close\r\nContent-Length: 25\r\n\r\n505 HTTP Version Not Supported",timebuf);
-	ws_write(fd,buffer,strlen(buffer));
-	ws_log(fp,INFO,"Sent 505");
-	drop_client(fd);
+	client_log(host,INFO,"HTTP/1.1 %d %s",err,resp_code_list[flag].str);
+
+	if(close)
+		drop_client(fd);
 }
 

@@ -1,13 +1,33 @@
-#include "server.h"
-
-/* TODO : Read URL Rfc and create a better parser
- *	Till now assume valid URI
+/* Parses the header lines and returns 0 on success, else error codes or -1 for system
+ * error 
+ *
+ *	Request header format:
+ *		request-line
+ *		request-headers CRLF
+ *		CRLF CRLF
+ *
+ *	Request line:
+ *		Method SP Request-URI SP HTTP-Version CRLF    -->
+ *								Err 501 Not implemented
+ *
+ *	Request-URI:
+ *		"*" | absoluteURI | abs_path | authority -->
+ *								Err 414 Long URI
+ *
+ *	Error Code here:
+ *		400 Bad Request
+ *		404 not found
+ *		411 Length required
+ *		413 Paylaod Too large
+ *
  */
+#include "server.h"
 
 char *parse_url(char *str)
 {
 	char *res = strstr(str,"://");
 	if(res !=NULL){
+
 		/* absolute URI */
 		res+=3;
 		while(*res != '/'){
@@ -39,8 +59,7 @@ char *parse_url(char *str)
 }
 
 /* Return error code on error or -1 on system error  */
-
-int parse_request_line(char *str, int fd)
+int parse_request_line(char *host, char *str, int fd)
 {
 	char *str1, *save, *res;
 	int i;
@@ -60,7 +79,7 @@ int parse_request_line(char *str, int fd)
 			else if(strcmp("HEAD",res) == 0){
 				method = HEAD;
 			}else{
-				send_501(fd);
+				send_code(501,host,fd,1,0);
 				return 501;
 			}
 
@@ -71,13 +90,13 @@ int parse_request_line(char *str, int fd)
 		if(i == 1){ 	/* Url */
 
 			if(strlen(res) > MAX_URI_LEN ){
-				send_414(fd);
+				send_code(414,host,fd,1,0);
 				return 414;
 
 			}
 			char *ret = parse_url(res);
 			if(ret == NULL){
-				send_500(fd);
+				send_code(500,host,fd,1,0);
 				return 500;
 			}
 
@@ -85,18 +104,18 @@ int parse_request_line(char *str, int fd)
 
 			struct stat statbuf;
 			if(lstat(ret,&statbuf) == -1){
-				send_404(fd);
+				send_code(404,host,fd,1,0);
 				return 404;
 			}
 
 			off_t content_len = statbuf.st_size;
 			
-			send_200(fd,content_len);
+			send_code(200,host,fd,0,content_len);
 			
 			if(method == GET){
 				int file = open(ret,O_RDONLY);
 				if(file == -1){
-					send_500(fd);
+					send_code(500,host,fd,1,0);
 					return 500;
 				}
 				sendfile(fd,file,0,content_len);
@@ -116,7 +135,7 @@ int parse_request_line(char *str, int fd)
 
 		if(i == 2){	/* HTTP version */
 			if(strstr(res,"1.1")==NULL){
-				send_505(fd);
+				send_code(505,host,fd,1,0);
 				return 505;
 			}
 
@@ -128,30 +147,7 @@ int parse_request_line(char *str, int fd)
 	return 0;
 }
 
-/* Parses the header lines and returns 0 on success, else error codes or -1 for system
- * error 
- *
- *	Request header format:
- *		request-line
- *		request-headers CRLF
- *		CRLF CRLF
- *
- *	Request line:
- *		Method SP Request-URI SP HTTP-Version CRLF    -->
- *								Err 501 Not implemented
- *
- *	Request-URI:
- *		"*" | absoluteURI | abs_path | authority -->
- *								Err 414 Long URI
- *
- *	Error Code here:
- *		400 Bad Request
- *		404 not found
- *		411 Length required
- *		413 Paylaod Too large
- *
- */
-int parse_request(char *request, int fd)
+int parse_request(char* host, char *request, int fd)
 {
 	char *str1, *res, *save;
 	int i;
@@ -171,7 +167,7 @@ int parse_request(char *request, int fd)
 
 		if(i == 0){	/* Parsing the request-line */
 
-			int ret = parse_request_line(res,fd);
+			int ret = parse_request_line(host, res,fd);
 
 			printf("Returned Value : %d\n",ret);
 
