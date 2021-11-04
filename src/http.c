@@ -111,11 +111,9 @@ int add_client(int cfd, struct sockaddr *addr, socklen_t *socklen)
 
 	temp->cfd = cfd;
 	temp->client_next = NULL;
-	temp->socklen = *socklen;
-	temp->addr = *addr;
 
 	/* Get host string*/
-	res = getnameinfo(&(temp->addr),temp->socklen,temp->host,NI_MAXHOST,NULL,0,NI_NUMERICHOST);
+	res = getnameinfo(addr,*socklen,temp->host,NI_MAXHOST,NULL,0,NI_NUMERICHOST);
 	if(res != 0){
 		strcpy(temp->host,"NULL");
 		char *err = (char *)gai_strerror(res);
@@ -164,17 +162,18 @@ void drop_client(int fd)
 
 void serve_resource(CLIENT* cl)
 {
+	/* TODO : Possible overflow here, check if reqBuf is not overflowed */
 	int fd = cl->cfd;
-	memset(&cl->readBuf,0,MAX_BUF);
-	cl->readData = ws_read(fd,cl->readBuf,MAX_BUF);
+	memset(&cl->reqBuf,0,sizeof(cl->reqBuf));
+	cl->readData = ws_read(fd,cl->reqBuf,sizeof(cl->reqBuf));
 
 	if(cl->readData == 0){		/* If the client closes connection read gives 0 and write gives EPIPE*/
 		drop_client(fd);
 		return ;
 	}
 
-	client_log(cl->host,INFO,cl->readBuf);
+	client_log(cl->host,INFO,cl->reqBuf);
 
-	parse_request(cl->host, cl->readBuf,fd);
+	parse_request(cl->host, cl->reqBuf,fd);
 }
 

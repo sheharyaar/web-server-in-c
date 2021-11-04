@@ -44,7 +44,7 @@ static char *err_time(char *buf){
 	time_t t;
 	time(&t);
 	struct tm *gmt = gmtime(&t);
-	snprintf(buf,MAX_DATE_LEN,"%s, %02d %s %04d %02d:%02d:%02d GMT",day[gmt->tm_wday],gmt->tm_mday,month[gmt->tm_mon],1900+gmt->tm_year,
+	snprintf(buf,DATE_LEN,"%s, %02d %s %04d %02d:%02d:%02d GMT",day[gmt->tm_wday],gmt->tm_mday,month[gmt->tm_mon],1900+gmt->tm_year,
 			gmt->tm_hour,gmt->tm_min,gmt->tm_sec);
 
 	return buf;
@@ -64,8 +64,8 @@ RESP_CODE resp_code_list[] = {
 
 void send_code(int err, char *host, int fd, int close, size_t body)
 {
-	char buffer[MAX_BUF+1];
-	char timebuf[MAX_DATE_LEN];
+	char buffer[RESP_LEN+1];
+	char timebuf[DATE_LEN];
 	err_time(timebuf);
 	
 	int flag = -1;
@@ -80,23 +80,23 @@ void send_code(int err, char *host, int fd, int close, size_t body)
 		return;
 	}
 
-	snprintf(buffer,MAX_BUF,"HTTP/1.1 %d %s\r\nDate: %s\r\n",err,resp_code_list[flag].str,timebuf);
+	snprintf(buffer,RESP_LEN,"HTTP/1.1 %d %s\r\nDate: %s\r\nServer: CUSTOM/1.0\r\n",err,resp_code_list[flag].str,timebuf);
 
 	if(close)
-		snprintf(buffer+strlen(buffer),MAX_BUF - strlen(buffer),"Connection: close\r\n");
+		snprintf(buffer+strlen(buffer),RESP_LEN - strlen(buffer),"Connection: close\r\n");
 
 	if(body == 0){
 		if(err!=200){
-			snprintf(buffer+strlen(buffer),MAX_BUF - strlen(buffer),"Content-Length: %lu\r\n",strlen(resp_code_list[flag].str) );
+			snprintf(buffer+strlen(buffer),RESP_LEN - strlen(buffer),"Content-Length: %lu\r\n",strlen(resp_code_list[flag].str) );
 		}
 	}else{
-		snprintf(buffer+strlen(buffer),MAX_BUF - strlen(buffer),"Content-Length: %lu\r\n",body);
+		snprintf(buffer+strlen(buffer),RESP_LEN - strlen(buffer),"Content-Length: %lu\r\n",body);
 	}
 
-	snprintf(buffer+strlen(buffer),MAX_BUF - strlen(buffer),"\r\n");
+	snprintf(buffer+strlen(buffer),RESP_LEN - strlen(buffer),"\r\n");
 	
 	if(body == 0 && err!=200)
-		snprintf(buffer+strlen(buffer),MAX_BUF - strlen(buffer),"%s",resp_code_list[flag].str);
+		snprintf(buffer+strlen(buffer),RESP_LEN - strlen(buffer),"%s",resp_code_list[flag].str);
 
 	ws_write(fd,buffer,strlen(buffer));
 

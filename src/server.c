@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Create server
-	int servfd = init_server("192.168.0.162",argv[1], AF_INET, IPPROTO_TCP, SOCK_STREAM);
+	int servfd = init_server("localhost",argv[1], AF_INET, IPPROTO_TCP, SOCK_STREAM);
 
 	// Wait on client
 	wait_on_client(servfd);
@@ -103,6 +103,7 @@ int init_server(char *host, char *service, int family, int protocol, int socktyp
 	/* No address to bind */
 	if(rp == NULL){
 		server_log(ERR,"bind - could not bind to any address");
+		exit(EXIT_FAILURE);
 	}
 	
 	server_log(INFO,"Successfully bind to socket");

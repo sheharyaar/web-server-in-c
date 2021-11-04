@@ -19,23 +19,30 @@
 #include <sys/sendfile.h>
 #include <sys/stat.h>
 
-// Define universal symbols here
+// Universal Defines
 #define TRUE 1
 #define FALSE 0
 
-// Define length limits here
-#define MAX_BUF 2048
+// Server Defines
+#define MAX_CLIENT 1024
+#define REQ_PIPELINE 10
+
+// Logger Defines
 #define MAX_LOG_BUF 512
 
-#define MAX_CLIENT 1024
+// Request Defines
+#define REQ_LEN 8096
+#define URI_LEN 1024
+#define METHOD_LEN 10
+#define VERSION_LEN 10
 
-#define MAX_URI_LEN 1024
-#define MAX_REQ_LEN (MAX_URI_LEN + 1024)
-#define MAX_RESP_CODE_LEN 56
-#define MAX_RESP_LINE_LEN (MAX_RESP_CODE_LEN + 16)
-#define MAX_DATE_LEN 30
+// Response Defines
+#define RESP_LEN 8096
+#define RESP_CODE_LEN 56
+#define RESP_LINE_LEN (RESP_CODE_LEN + 16)
+#define DATE_LEN 30
 
-// Define error methods here
+// Error defines
 #define INFO 0
 #define WARN 1
 #define ERR 2
@@ -58,25 +65,32 @@ void cleanup(void);
  * Members :
  * 	1) Client file descriptor
  * 	2) Length of struct containing address
- * 	3) Sturct address
- * 	4) Pointer to buffer for the client
- * 	5) Pointer to the next clien tin the list
+ * 	5) Pointer to the next client in the list
+ *
+ * 	The arrangement is to reduce padding
  */
 
 typedef struct client{
 	int cfd;
-	ssize_t readData;
-	socklen_t socklen;
+	ssize_t readData;		// need to rethink it and implement pipeling. this is for if the pipe is empty
 	struct client *client_next;
-	struct sockaddr addr;
 	char host[NI_MAXHOST];
-	char readBuf[MAX_BUF];
-
+	char respBuf[RESP_LEN];
+	char reqBuf[REQ_PIPELINE*REQ_LEN];
 } CLIENT;
+
+typedef struct request {
+	char method[METHOD_LEN];
+	char url[URI_LEN];
+	char version[VERSION_LEN];
+	char **headers;
+} REQUEST;
 
 /* Repsonse Structure */
 typedef struct response{
-	char response_line[MAX_RESP_LINE_LEN];
+	int version;
+	int code;
+	char code_str[RESP_CODE_LEN];
 	char **headers;
 } RESPONSE;
 
@@ -100,7 +114,7 @@ ssize_t ws_write(int fd, void *buf, size_t count);
 
 typedef struct resp_code {
 	int code;
-	char str[MAX_RESP_CODE_LEN];
+	char str[RESP_CODE_LEN];
 } RESP_CODE;
 
 void send_code(int err, char *host, int fd, int close, size_t body);

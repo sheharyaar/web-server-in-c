@@ -41,7 +41,7 @@ char *parse_url(char *str)
 		res = str;
 	}
 	
-	char *link = malloc((MAX_URI_LEN+2)*sizeof(char));
+	char *link = malloc((URI_LEN+2)*sizeof(char));
 	if(link == NULL)
 		return NULL;
 
@@ -89,7 +89,7 @@ int parse_request_line(char *host, char *str, int fd)
 	
 		if(i == 1){ 	/* Url */
 
-			if(strlen(res) > MAX_URI_LEN ){
+			if(strlen(res) > URI_LEN ){
 				send_code(414,host,fd,1,0);
 				return 414;
 
