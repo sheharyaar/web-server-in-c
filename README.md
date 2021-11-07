@@ -61,7 +61,7 @@
 
 ### Data Structures
 
-Linked List to store connected Client information. Linked List seamed feasible as the max concurrent clients are by default 1024, so it seems not much effect on performance. \
+Linked List to store connected Client information. Linked List seamed feasible as the max concurrent clients are by default 1024, so it seems not much effect on performance. <br>
 
 ```c
 typedef struct client{
@@ -73,15 +73,15 @@ typedef struct client{
 	char reqBuf[REQ_PIPELINE*REQ_LEN];
 } CLIENT;
 ```
-cfd : File descriptor for the client \
-readDate : Number of bytes of data read from the descriptor \
+cfd : File descriptor for the client <br>
+readDate : Number of bytes of data read from the descriptor<br>
 host : String containing the hostname
 respBuf : Buffer to contain the response message
 reqBuf : Buffer to contain the request messagea
-client\_next : Pointer to the next client node \
-\
+client\_next : Pointer to the next client node<br>
 
-Structure to store request messages : \
+
+Structure to store request messages :<br>
 
 ```c
 typedef struct request {
@@ -93,12 +93,12 @@ typedef struct request {
 
 ```
 
-method : Contains Request method string - GET, HEAD, POST, etc. \
-url : URI for the source \
-version : String to contain HTTP Version \
-headers : a pointer to an array of strings containing the remaining headers \
-\
-Structure to store response messages : \
+method : Contains Request method string - GET, HEAD, POST, etc.<br>
+url : URI for the source<br>
+version : String to contain HTTP Version<br>
+headers : a pointer to an array of strings containing the remaining headers<br>
+
+Structure to store response messages :<br>
 
 ```c
 typedef struct response{
@@ -109,10 +109,10 @@ typedef struct response{
 } RESPONSE;
 ```
 
-version : HTTP Version of the response used to construct response message line \
-code : Response code \
-code\_str : Description for the code \
-headers : a pointer to an array of strings containing the remaining headers \
+version : HTTP Version of the response used to construct response message line<br>
+code : Response code<br>
+code\_str : Description for the code<br>
+headers : a pointer to an array of strings containing the remaining headers<br>
 
 ### Functions
 
