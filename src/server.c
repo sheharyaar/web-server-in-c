@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 {
 
 	// Usage Error
-	if(argc!=4){
+	if(argc!=5){
 		fprintf(stderr,"Usage :\n%s host port server-logfile client-logfile\n",argv[0]);
 		exit(EXIT_FAILURE);
 	}
