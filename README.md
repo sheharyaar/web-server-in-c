@@ -14,12 +14,6 @@
 - GET, HEAD and POST Methods
 - Supported HTTP Codes : 200, 400, 404, 411, 413, 414, 500, 501, 505
 
-# In Development
-
-- Daemonising the server
-- Supporting HTTPs
-- Supporting CGI
-
 # Codebase Notes
 
 ### Symbols used
