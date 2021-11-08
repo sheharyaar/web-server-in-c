@@ -18,18 +18,18 @@ int main(int argc, char *argv[])
 
 	// Usage Error
 	if(argc!=4){
-		fprintf(stderr,"Usage :\n%s port server-logfile client-logfile\n",argv[0]);
+		fprintf(stderr,"Usage :\n%s host port server-logfile client-logfile\n",argv[0]);
 		exit(EXIT_FAILURE);
 	}
 
 	// Open serverfile and logfile
-	serverfp = fopen(argv[2],"a");
+	serverfp = fopen(argv[3],"a");
 	if(serverfp == NULL){
-		fprintf(stderr,"Error in opening client-logfile");
+		fprintf(stderr,"Error in opening server-logfile");
 		exit(EXIT_SUCCESS);
 	}
 
-	clientfp = fopen(argv[3],"a");
+	clientfp = fopen(argv[4],"a");
 	if(clientfp == NULL){
 		fprintf(stderr,"Error in opening client-logfile");
 		exit(EXIT_FAILURE);
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Create server
-	int servfd = init_server("192.168.29.83",argv[1], AF_INET, IPPROTO_TCP, SOCK_STREAM);
+	int servfd = init_server(argv[1],argv[2], AF_INET, IPPROTO_TCP, SOCK_STREAM);
 
 	// Wait on client
 	wait_on_client(servfd);
