@@ -124,7 +124,7 @@ void send_code(int err, char *host, int fd, int close, size_t body);
 char *parse_url(char *str);
 int parse_request_line(char *host, char *str, int fd);
 int parse_header(char *host, char *str, int fd);
-int parse_request(char *host, char *str, int fd);
+int parse_request(CLIENT *cl);
 
 /*----------------------------------------------------- end header ---------------------------------------------*/
 #endif

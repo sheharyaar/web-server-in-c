@@ -165,15 +165,26 @@ void serve_resource(CLIENT* cl)
 	/* TODO : Possible overflow here, check if reqBuf is not overflowed */
 	int fd = cl->cfd;
 	memset(&cl->reqBuf,0,sizeof(cl->reqBuf));
-	cl->readData = ws_read(fd,cl->reqBuf,sizeof(cl->reqBuf));
+	cl->readData = ws_read(fd,cl->reqBuf,REQ_LEN);
 
 	if(cl->readData == 0){		/* If the client closes connection read gives 0 and write gives EPIPE*/
 		drop_client(fd);
 		return ;
 	}
 
-	client_log(cl->host,INFO,cl->reqBuf);
+	if(cl->readData == REQ_LEN){
+		send_code(413,cl->host,fd,1,0);
+		return ;
+	}
 
-	parse_request(cl->host, cl->reqBuf,fd);
+	char *reqbuf = cl->reqBuf;
+
+	if(strstr(reqbuf,"\r\n\r\n") == NULL){
+		send_code(400,cl->host,fd,1,0);
+		exit(EXIT_FAILURE);
+	}	
+
+	client_log(cl->host,INFO,cl->reqBuf);
+	parse_request(cl);
 }
 

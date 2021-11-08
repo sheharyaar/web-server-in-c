@@ -2,22 +2,92 @@ TODO :
 	HTTP -
 		[ ]Check for SIGPIPE ( Premature close ) and RST mechanism refer to bible
 		[ ]Create a user handler and improve user structure
+			Implement timeout
 			Maybe implement DDOS Mechanism with counter of some sort ?? If reach threshold then blacklist
 
 	LOGS -
-		[ ]Add user agent
-		[ ]Add request-line
+		[X]Add user agent
+		[X]Add request-line
 
 	PARSE -
-		[ ]Implement Content-Type 
+		[ ]Implement Content-Type  MIME
 		[ ]Implement message header parsing and integrate to the send_code fuunction
 		[ ]Improve URL Parsing for dot characters and hex encoding
 		[ ]Remove debugging printf statements
 		[ ]Look into 404 close ( try not to close connection except for critical error)
-		[ ]Implement the response and request message structure
+		[X]Implement the response and request message structure
 
 	HEADER - 
+		[ ]Dont track every header only some and use hash table for this and MIME too maybe
 		[ ]Document the functions
-		[ ]Improve MAX Length functions and think to reduce them
+		[X]Improve MAX Length functions and think to reduce them
 	
+## Check Point 2 :
+
+	- Support five HTTP 1.1 error codes: 408
+	- Handle pipelined requests.
+	- Last-modified
+	- Build own hashtable library if needed
+	- do not assume that they always fit inside one buffer. Be prepared to parse across buffer boundaries.
+
+	-  assume requests to your server have the “Content-Length” field, if applicable. If it is missing for
+a POST request, return a 400 response. For GET and HEAD request if the field is missing you can
+assume the content length is 0.
+
+	- You are allowed to use that or a simplified version of it. No need to support all well-known
+MIME-types, just the most common ones: text/html, text/css, image/png, image/jpeg, image/gif and
+maybe a few others, up to your discretion.
+
+	- for LAst Modified field use stat()
+
+## Check Point 3 :
+	
+	- Daemonise the server
+	- Implement HTTPS and CGI : CGI - 3875 and TLS - 2818
+
+### Implementing Daemon :
+
+	- For SIGHUP, you need to rehash the server. This is used in practice to ensure that servers experience
+minimal downtime. An administrator can update the certificate for the server, then send a SIGHUP signal
+that will cause the server to update and use the new certificate.
+
+	- For SIGTERM, you need to gracefuly shut down the connections, any memory usage, and ultimately the
+entire server.
+
+### Implementing CGI :
+	
+	- CGI :  RFC 3875 		URI : RFC 2396
+	- Check CGI variables from PDF
+
+	-  Implement your CGI module. Any URI starting with “/cgi/” will be handled by a single command
+	line–specified executable via a CGI interface coded by you. We have also provided example code of a
+	CGI runner in the handout for CP3.
+
+	(a) CGI URI’s may accept GETs, POSTs, and HEADs; your job is not to decide this, just pass along
+	information to the program being called.
+
+	(b) You need to pipe stdin, pipe stdout, fork(), setup environment variables per the CGI specification,
+	and execve() the executable (it should be executable) Note: Watch the piped fd’s in the parent
+	process using your select() loop. Just add them to the appropriate select() sets and treat them
+	like sockets, except you have to pipe them further to specific sockets.
+
+	(c) Pass any message body (especially for POSTs) via stdin to the CGI executable.
+
+	(d) Receive any response over stdout until the process dies (monitor process status), or there is
+	nothing more to read, or a broken pipe is encountered.
+
+	(e) If the CGI program fails in any way, return a 500 response to the client, otherwise send all bytes
+	from the stdout of the spawned process to the requesting client.
+
+	(f) The CGI application will produce headers and message body data as it sees fit, you do not need
+	to modify or inspect these bytes at all.
+	
+### Implementing HTTPS:
+	
+	SEE PDF
+
+## Checkout
+	- AF_BLUETOOTH
+	- packet { man 7 packet }
+	- SOCK_RAW
 

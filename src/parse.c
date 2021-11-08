@@ -47,8 +47,6 @@ char *parse_url(char *str)
 
 	strcpy(link,"../www");
 	strcpy(link+strlen(link),res);
-	
-	printf("DEBUG: LINK -- %s\n",link);
 
 	if(strcmp(link,"../www/") == 0){
 		strcpy(link+strlen(link),"index.html");
@@ -147,23 +145,20 @@ int parse_request_line(char *host, char *str, int fd)
 	return 0;
 }
 
-int parse_request(char* host, char *request, int fd)
+int parse_request(CLIENT *cl)
 {
-	char *str1, *res, *save;
+	char *str, *res, *save;
 	int i;
+	int fd = cl->cfd;
+	char *request = cl->reqBuf;
+	char *host = cl->host;
 	
-	/* Splitting the header and the body	*/
-	char *str = strtok(request,"\r\n\r\n");
-	if(str == NULL)
-		return 400;
-	
-	/* Splitting individual lines */
-	for(i=0,str1 = str; ; str1=NULL,++i){
-		res = strtok_r(str1,"\r\n",&save);
+	for(i=0,str = request; ; str=NULL,++i){
+		res = strtok_r(str,"\r\n",&save);
 		if(res == NULL)
 			break;
 
-		printf("Line : %s\n",res);
+		printf("SMALLER HEADER!\n");
 
 		if(i == 0){	/* Parsing the request-line */
 
@@ -175,7 +170,7 @@ int parse_request(char* host, char *request, int fd)
 				return ret;
 		}else{
 			/* Parse the message headers */
-
+			
 		}
 	}
 
