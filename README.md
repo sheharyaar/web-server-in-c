@@ -1,3 +1,11 @@
+# Building
+
+1. Go to `src/` folder <br>
+2. Run make : `make` <br>
+3. Run server with the proper options : `./server host port server-logfile client-logfile` <br>
+4. To clean : `make clean`
+
+
 # Supported capabilities
 
 ### Server capabilities
