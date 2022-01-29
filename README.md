@@ -1,3 +1,7 @@
+[![forthebadge](https://forthebadge.com/images/badges/made-with-c.svg)](https://forthebadge.com)
+[![forthebadge](https://forthebadge.com/images/badges/built-with-love.svg)](https://forthebadge.com)
+[![forthebadge](https://forthebadge.com/images/badges/it-works-why.svg)](https://forthebadge.com)
+
 # Building
 
 1. Go to `src/` folder <br>
@@ -5,6 +9,7 @@
 3. Run server with the proper options : `./server host port server-logfile client-logfile` <br>
 4. To clean : `make clean`
 
+[![forthebadge](https://forthebadge.com/images/badges/works-on-my-machine.svg)](https://forthebadge.com)
 
 # Supported capabilities
 
