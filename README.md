@@ -2,6 +2,8 @@
 [![forthebadge](https://forthebadge.com/images/badges/built-with-love.svg)](https://forthebadge.com)
 [![forthebadge](https://forthebadge.com/images/badges/it-works-why.svg)](https://forthebadge.com)
 
+The project is now archived as it was a learning project.
+
 # Building
 
 1. Go to `src/` folder <br>
